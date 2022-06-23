@@ -5,11 +5,11 @@
 
 { pkgs ? import <nixpkgs> { config = { allowUnfree = true; }; }
 , name ? "unnamed-shell" }: {
-  buildInputs = with pkgs; [ git libtool libGL mkl glib zlib ];
+  buildInputs = with pkgs; [ git libtool libGL libsndfile mkl glib zlib ];
 
   shellHook = ''
     # Adding CC Lib, MKL, and zlib to top of LD_LIBRARY_PATH.
-    export LD_LIBRARY_PATH=${pkgs.mkl}/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib}/lib:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=${pkgs.mkl}/lib:${pkgs.libsndfile.out}/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib}/lib
 
     # Exporting ACLOCAL_PATH with libtool path included.
     export ACLOCAL_PATH=${pkgs.libtool}/share/aclocal:$ACLOCAL_PATH

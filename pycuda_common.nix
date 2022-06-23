@@ -77,7 +77,7 @@ in mkShell {
     pythonPackages ++ cudaPackages ++ common.buildInputs;
 
   shellHook = if cuda_version == "no" then
-    pythonShellHook + common.shellHook
+    common.shellHook + pythonShellHook 
   else
-    pythonShellHook + cudaShellHook + common.shellHook;
+    common.shellHook + pythonShellHook + cudaShellHook;
 }
