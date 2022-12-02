@@ -18,13 +18,6 @@
     export MKLROOT=${pkgs.mkl}
     export MKLLIBDIR=${pkgs.mkl}/lib
 
-    # Prompt Appearance. Appends nix-shell name to the front.
-    resetcolor="\033[00m"
-    cyan="\033[1;36m"
-    blue="\033[1;34m"
-    green1="\033[0;32m"
-    green2="\033[1;32m"
-
-    export PS1="\[$cyan\](${name})\[$resetcolor\] \[$green2\]\u@\h\[$resetcolor\]:\[$blue\]\w\[$resetcolor\]\[$green1\]$(__git_ps1 " (%s)")\[$resetcolor\]\$ "
+    export name=${name}
   '';
 }

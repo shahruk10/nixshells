@@ -80,4 +80,22 @@ in mkShell {
     common.shellHook + pythonShellHook 
   else
     common.shellHook + pythonShellHook + cudaShellHook;
+
+  installPhase = ''
+    # Patching python paths for previously created venvs incase the python
+    # installation was gc-ed and no longer at the same path in the nix store as
+    # it was when the venv was created.
+    for e in $WORKON_HOME/*; do
+      if [ ! -e $e/pyvenv.cfg ]; then
+        continue
+      fi
+
+      sed -i \
+        -e "s|home = .*|home = ${python}|g" \
+        -e "s|base-prefix = .*|base-prefix = ${python}|g" \
+        -e "s|base-exec-prefix = .*|base-exec-prefix = ${python}|g" \
+        -e "s|base-executable = .*|base-executable = ${python}/bin/${python.executable}|g" \
+        $e/pyvenv.cfg
+    done
+  '';
 }
