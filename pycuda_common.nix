@@ -35,12 +35,52 @@ let
   cudnn = getAttr "cudnn_${cudnn_version}_cudatoolkit_${cuda_version}" pkgs;
   cutensor = getAttr "cutensor_cudatoolkit_${cuda_version}" pkgs;
 
+  patched_virtual_env_clone = python.pkgs.buildPythonPackage rec {
+    pname = "virtualenv-clone";
+    version = "0.5.7";
+    format = "setuptools";
+
+    src = fetchFromGitHub {
+      owner = "edwardgeorge";
+      repo = pname;
+      rev = version;
+      hash = "sha256-qrN74IwLRqiVPxU8gVhdiM34yBmiS/5ot07uroYPDVw=";
+    };
+
+    postPatch = ''
+      substituteInPlace tests/__init__.py \
+        --replace "'virtualenv'" "'${python.pkgs.virtualenv}/bin/virtualenv'" \
+        --replace "'3.9', '3.10']" "'3.9', '3.10', '3.11', '3.12']" # if the Python version used isn't in this list, tests fail
+
+      substituteInPlace tests/test_virtualenv_sys.py \
+        --replace "'virtualenv'" "'${python.pkgs.virtualenv}/bin/virtualenv'"
+
+        substituteInPlace tests/test_virtualenv_clone.py \
+        --replace "lines = f.read().decode('utf-8')" "# lines = f.read().decode('utf-8')"
+    '';
+
+    propagatedBuildInputs = [ python.pkgs.virtualenv ];
+
+    meta = with lib; {
+      homepage = "https://github.com/edwardgeorge/virtualenv-clone";
+      description = "Script to clone virtualenvs";
+      mainProgram = "virtualenv-clone";
+      license = licenses.mit;
+      maintainers = [ ];
+    };
+  };
+
+  patched_virtualenv_wrapper = (python.pkgs.virtualenvwrapper.override {
+    virtualenv-clone = patched_virtual_env_clone;
+  });
+
   pythonPackages = with python.pkgs; [
     pip
     setuptools
     virtualenv
-    virtualenvwrapper
+    patched_virtualenv_wrapper
     gcc
+    espeak-phonemizer
   ];
 
   cudaPackages = [ cuda cudnn cutensor ];
@@ -55,7 +95,7 @@ let
     export SHELL_DATA_DIR="$HOME/.nixshells/${name}"
     export WORKON_HOME=$SHELL_DATA_DIR/virtualenvs
     export VIRTUALENVWRAPPER_PYTHON=${python.executable}
-    source ${python.pkgs.virtualenvwrapper}/bin/virtualenvwrapper.sh
+    source ${patched_virtualenv_wrapper}/bin/virtualenvwrapper.sh
   '';
 
   cudaShellHook = ''
@@ -77,7 +117,7 @@ in mkShell {
     pythonPackages ++ cudaPackages ++ common.buildInputs;
 
   shellHook = if cuda_version == "no" then
-    common.shellHook + pythonShellHook 
+    common.shellHook + pythonShellHook
   else
     common.shellHook + pythonShellHook + cudaShellHook;
 
