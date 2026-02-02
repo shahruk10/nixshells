@@ -1,110 +1,113 @@
-# Virtual Environments for System Packages with `nix-shell`
+# Flake-Based Development Templates (Research / Python / ML)
 
-- [`nix-shell`](https://nixos.wiki/wiki/Development_environment_with_nix-shell)
-  is a package manager that lets you:
-  
-  - Use a package without installing it globally.
+This repository provides **Nix flake templates** for quickly bootstrapping reproducible development environments.
 
-  - Create isolated, reproducible virtual environments with any packages you
-  require without causing bunch of version conflicts - *think python `venv` but
-  for system packages* (but it's so much more).
-
-  ![Python virtual environments inside `nix-shells`](./.images/overview.png)
-
-- This blog by Mattia Gheda has a [good introduction](https://ghedam.at/15978/an-introduction-to-nix-shell).
-  to `nix-shell`.
-
-- I have switched to using `nix-shell` for all my development needs. This
-  repository contains nix files I use quite frequently when working with Python
-  and CUDA, as well as other development languages and tools.
+Instead of copying `flake.nix` files around, you can now **initialize new projects directly from this repo** using `nix flake init` -- just like official Nix templates.
 
 ---
 
-## Installing `nix-shell`
+## Requirements
 
-- `nix-shell` can be installed on both linux and macOS using the following
-  command (follow on screen instructions):
+### Install Nix
 
-  ```sh
-  sh <(curl -L https://nixos.org/nix/install) --daemon
-  ```
+If you don’t already have Nix installed:
 
----
+```sh
+sh <(curl -L https://nixos.org/nix/install) --daemon
+```
 
-## Example Usage
+Then enable flakes (if not already enabled):
 
-- Assuming you have `nix-shell` installed, you can create environments with
-  python and CUDA by invoking `nix-shell` with the appropriate `.nix` file.
-
-- There are several in the repo with different combinations of python and CUDA
-  versions.
-
-- For example, for `python 3.8` with `CUDA 11.3` and cuDNN use `py38cuda113.nix`
-  like so:
-
-  ```sh
-  # The location of this repository.
-  REPO=/home/$USER/nixshells
-
-  # Python 3.8 with CUDA 11.3 and CuDNN.
-  #
-  # After this command completes, you will be prompted with a new shell
-  # with python v3.8.x and CUDA installed. When used the for the first time,
-  # it will download python and CUDA files from the Nix package manager to your
-  # local nixstore. Subsequent invocations will use downloaded files.
-  #
-  # CUDA and cuDNN is a big download (~4 GB), so the first invocation will take
-  # a while depending on your internet speed.
-  nix-shell ${REPO}/py38cuda113.nix
-  ```
-
-- This environment comes with `python 3.8`,
-  [`virtualenvwrapper`](https://virtualenvwrapper.readthedocs.io/en/latest/) and
-  `CUDA 11.3` installed. You can now create a python virtual environment the
-  usual way of using `virtualenvwrapper` by running:
-
-  ```sh
-  # Will create a virutal environment called `tf28` under ~/.nixshells/py38-cuda113
-  # and enable it. Different .nix files will have a different directory for storing
-  # python virtual environments.
-  mkvirutalenv tf28
-  ```
-
-- Install any packages you want in the python environment (which is now active
-  inside the nix-shell):
-
-  ```sh
-  # Installing tensorflow.
-  pip install tensorflow==2.8.0
-  
-  # Check if CUDA is available.
-  python -c 'import tensorflow as tf; print(tf.test.is_gpu_available())'
-  ```
-
-- To deactivate the `virtualenv` and nix shell, press `Ctrl + D`. Your python
-  environments will be preserved and be accessible you re-activate the nix shell
-  again.
+```sh
+mkdir -p ~/.config/nix
+echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+```
 
 ---
 
-## Updating Packages
+## Using This Repo as a Template Source
 
-- To use different python or CUDA versions, you can pretty much duplicate one of the
-  [`py.*cuda.*.nix`](./py38cuda113.nix#L7) files and update the build parameters.
-  
-- The nix files are *relatively* straight forward, and you can add / remove
-  packages you want by updating the `buildInputs` argument in the [common.nix
-  file](./common.nix#8). The package list here is shared with all other `.nix`
-  files in the repository.
-  
-- To search through the the 80,000+ available packages, check
-  [https://search.nixos.org/packages](https://search.nixos.org/packages).
+This repository is structured as a **template registry**. Each subdirectory
+represents a template that can be used with `nix flake init`.
 
-- Of course you can create your own nix files too :D
+Current templates:
 
-  - This blog by Mattia Gheda has a [good introduction](https://ghedam.at/15978/an-introduction-to-nix-shell).
+```text
+python/default
+```
 
-  - The [official wiki](https://nixos.wiki/wiki/Python) can be a bit
-    intimidating for newbies but is an excellent resource nonetheless.
+---
 
-  - More about Nix and NixOS [here](https://ghedam.at/15490/so-tell-me-about-nix).
+## Create a New Project
+
+### Python Dev Environment
+
+From any empty project directory, run:
+
+```sh
+nix flake init -t github:shahruk10/nixshells#python
+```
+
+Example:
+
+```sh
+mkdir my-ml-project
+cd my-ml-project
+
+nix flake init -t github:shahruk10/nixshells#python
+```
+
+This will generate:
+
+```text
+flake.nix
+flake.lock
+.envrc
+```
+
+If you have `direnv` installed (very much recommended), the `.envrc` file will
+direct it to automatically activate the shell defined in the flake.nix with your
+development environment.
+
+There are multiple shells defined in the python template, one without CUDA support,
+and one without. Enable which ever one you need. You can view the ones available
+by running:
+
+```sh
+nix flake show
+```
+
+Each shell will automatically create a `.venv` directory and initialize a
+virtual python environment there. You can install almost all python dependencies
+via `pip` afterwards.
+
+---
+
+### Updating the Environment
+
+To modify system packages:
+
+1. Edit `flake.nix`
+2. Add or remove packages from `buildInputs`
+3. Reload the shell:
+
+```sh
+exit
+nix develop
+```
+
+To update pinned dependencies:
+
+```sh
+nix flake update
+```
+
+---
+
+## Resources
+
+* Nix Flakes: [https://nixos.wiki/wiki/Flakes](https://nixos.wiki/wiki/Flakes)
+* Nix Packages: [https://search.nixos.org/packages](https://search.nixos.org/packages)
+* nixGL: [https://github.com/nix-community/nixGL](https://github.com/nix-community/nixGL)
+
+---
